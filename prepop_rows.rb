@@ -1,5 +1,6 @@
 #!/usr/bin/ruby
 
+require 'optparse'
 require 'smarter_csv'
 require 'rubyXL'
 require 'ezid-client'
@@ -31,7 +32,6 @@ Ezid::Client.configure do |conf|
   conf.user = 'apitest' unless ENV['EZID_USER']
   conf.password = 'apitest' unless ENV['EZID_PASSWORD']
 end
-
 
 QUALIFIED_HEADERS = { :type => 'Type',
                       :unique_identifier => 'Unique Identifier',
@@ -94,7 +94,7 @@ def workbook.add_custom_field(y, x, value)
   worksheet.add_cell(y, x, value)
 end
 
-def workbook.prepop(dataset)
+def workbook.prepop(dataset, opts = {})
 
   multi_values = {}
   worksheet = worksheets[0]
@@ -120,13 +120,23 @@ def workbook.prepop(dataset)
       worksheet.add_cell(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == key }, value)
     end
 
-    identifier, directory = mint_arkid
-    add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :unique_identifier }, identifier)
-    add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :directory_name }, directory)
+    if opts[:ark]
+      identifier, directory = mint_arkid
+      add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :unique_identifier }, identifier)
+      add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :directory_name }, directory)
+    end
 
   end
 end
 
+flags = {}
+OptionParser.new do |opts|
+  opts.banner = "Usage: prepop_rows.rb [options] FILE"
+
+  opts.on("-a", "--ark", "Mint arks, one per row in output spreadsheet") do |a|
+    flags[:ark] = a
+  end
+end.parse!
 spreadsheet_name = 'default.xlsx'
 
 csv = ARGV[0]
@@ -135,7 +145,7 @@ csv_parsed = SmarterCSV.process(csv, options)
 
 puts 'Writing spreadsheet...'
 workbook.set_up_spreadsheet
-workbook.prepop(csv_parsed)
+workbook.prepop(csv_parsed, flags)
 workbook.write(spreadsheet_name)
 puts "Spreadsheet written to #{spreadsheet_name}."
 
