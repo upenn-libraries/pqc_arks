@@ -78,7 +78,9 @@ CROSSWALKING_TERMS_MULTIPLE = { :identifier => [ :thing_uuid,
                                 :personal_name => [ :person_nam,
                                                     :person_n_1 ] }.freeze
 
-BOILERPLATE_TERMS_VALUES = { :collection_name => 'Arnold and Deanne Kaplan Collection of Americana',
+CROSSWALKING_OPTIONS = { :delimiter => '|' }
+
+BOILERPLATE_TERMS_VALUES = { :collection_name => 'Arnold and Deanne Kaplan collection of Early American Judaica, 1555-1977',
                              :rights => 'http://rightsstatements.org/vocab/UND/1.0/' }
 
 workbook = RubyXL::Workbook.new
@@ -108,7 +110,7 @@ def workbook.prepop(dataset, opts = {})
     CROSSWALKING_TERMS_MULTIPLE.each do |key, values|
       multi_values[key] = ""
       values.each do |value|
-        multi_values[key].concat("#{row[value]};") unless row[value].nil?
+        multi_values[key].concat("#{row[value]}#{CROSSWALKING_OPTIONS[:delimiter]}") unless row[value].nil?
       end
     end
 
