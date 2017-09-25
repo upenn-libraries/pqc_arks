@@ -2,6 +2,7 @@
 
 require 'smarter_csv'
 require 'rubyXL'
+require 'ezid-client'
 
 def missing_args?
   return (ARGV[0].nil?)
@@ -12,23 +13,29 @@ def set_up_spreadsheet(workbook, headers)
   set_headers(worksheet, headers)
 end
 
-def set_headers(worksheet, headers)
-  headers.each_with_index do |header, i|
-    worksheet.add_cell(0,i, header)
+def set_headers(worksheet, headers_hash)
+  headers_hash.each_with_index do |(key, value), index|
+    worksheet.add_cell(0,index, value)
   end
 end
 
-def identifier_missing?(identifier_location)
-  return identifier_location.nil? || identifier_location.empty?
-end
-
-def offset(index)
-  return index == 0 ? index : index-1
+def mint_arkid
+  identifier = Ezid::Identifier.mint
+  return identifier, identifier.to_s.gsub(/[:\/]/, ':' => '+', '/' => '=')
 end
 
 abort('Specify a path to a CSV file') if missing_args?
 
-QUALIFIED_HEADERS = { :abstract => 'Abstract',
+Ezid::Client.configure do |conf|
+  conf.default_shoulder = 'ark:/99999/fk4' unless ENV['EZID_DEFAULT_SHOULDER']
+  conf.user = 'apitest' unless ENV['EZID_USER']
+  conf.password = 'apitest' unless ENV['EZID_PASSWORD']
+end
+
+
+QUALIFIED_HEADERS = { :type => 'Type',
+                      :unique_identifier => 'Unique Identifier',
+                      :abstract => 'Abstract',
                       :call_number => 'Call Number',
                       :collection_name => 'Collection Name',
                       :contributor => 'Contributor',
@@ -52,8 +59,6 @@ QUALIFIED_HEADERS = { :abstract => 'Abstract',
                       :source => 'Source',
                       :subject => 'Subject',
                       :title => 'Title',
-                      :type => 'Type',
-                      :unique_identifier => 'Unique Identifier',
                       :directory_name => 'Directory Name',
                       :filenames => 'Filename(s)' }.freeze
 
@@ -73,6 +78,9 @@ CROSSWALKING_TERMS_MULTIPLE = { :identifier => [ :thing_uuid,
                                 :personal_name => [ :person_nam,
                                                     :person_n_1 ] }.freeze
 
+BOILERPLATE_TERMS_VALUES = { :collection_name => 'Arnold and Deanne Kaplan Collection of Americana',
+                             :rights => 'http://rightsstatements.org/vocab/UND/1.0/' }
+
 workbook = RubyXL::Workbook.new
 
 def workbook.set_up_spreadsheet
@@ -81,10 +89,9 @@ def workbook.set_up_spreadsheet
   set_headers(worksheet, QUALIFIED_HEADERS)
 end
 
-def set_headers(worksheet, headers_hash)
-  headers_hash.each_with_index do |(key, value), index|
-    worksheet.add_cell(0,index, value)
-  end
+def workbook.add_custom_field(y, x, value)
+  worksheet = worksheets[0]
+  worksheet.add_cell(y, x, value)
 end
 
 def workbook.prepop(dataset)
@@ -93,6 +100,7 @@ def workbook.prepop(dataset)
   worksheet = worksheets[0]
 
   dataset.each_with_index do |row, y_index|
+
     QUALIFIED_HEADERS.each_with_index do  |(key, values), x|
       worksheet.add_cell(y_index+1, x, row[key]) unless row[key].nil?
     end
@@ -107,6 +115,14 @@ def workbook.prepop(dataset)
     multi_values.each do |key, value|
       worksheet.add_cell(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == key }, value) unless value.empty?
     end
+
+    BOILERPLATE_TERMS_VALUES.each do |key, value|
+      worksheet.add_cell(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == key }, value)
+    end
+
+    identifier, directory = mint_arkid
+    add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :unique_identifier }, identifier)
+    add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :directory_name }, directory)
 
   end
 end
