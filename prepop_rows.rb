@@ -37,6 +37,7 @@ QUALIFIED_HEADERS = { :type => 'Type',
                       :unique_identifier => 'Unique Identifier',
                       :abstract => 'Abstract',
                       :call_number => 'Call Number',
+                      :citation_note => 'Citation Note',
                       :collection_name => 'Collection Name',
                       :contributor => 'Contributor',
                       :corporate_name => 'Corporate Name',
@@ -59,8 +60,13 @@ QUALIFIED_HEADERS = { :type => 'Type',
                       :source => 'Source',
                       :subject => 'Subject',
                       :title => 'Title',
+                      :container_1_type => 'Container 1 Type',
+                      :container_1_value => 'Container 1 Value',
+                      :container_2_type => 'Container 2 Type',
+                      :container_2_value => 'Container 2 Value',
                       :directory_name => 'Directory Name',
-                      :filenames => 'Filename(s)' }.freeze
+                      :filenames => 'Filename(s)',
+                      :status => 'Status'}.freeze
 
 CROSSWALKING_TERMS_SINGLE = { :corporatio => :corporate_name,
                  :date => :date,
@@ -69,6 +75,10 @@ CROSSWALKING_TERMS_SINGLE = { :corporatio => :corporate_name,
                  :genre_subl => :type,
                  :langcode => :language,
                  :location => :geographic_subject,
+                 :container_ => :container_1_type,
+                 :containe_1 => :container_1_value,
+                 :containe_2 => :container_2_type,
+                 :containe_3 => :container_2_value,
                  :tiff_locat => :filenames }.freeze
 
 CROSSWALKING_TERMS_MULTIPLE = { :identifier => [ :thing_uuid,
@@ -81,6 +91,7 @@ CROSSWALKING_TERMS_MULTIPLE = { :identifier => [ :thing_uuid,
 CROSSWALKING_OPTIONS = { :delimiter => '|' }
 
 BOILERPLATE_TERMS_VALUES = { :collection_name => 'Arnold and Deanne Kaplan collection of Early American Judaica, 1555-1977',
+                             :call_number => 'Arc.MS.56',
                              :rights => 'http://rightsstatements.org/vocab/UND/1.0/' }
 
 workbook = RubyXL::Workbook.new
