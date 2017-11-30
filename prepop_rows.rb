@@ -110,7 +110,7 @@ BOILERPLATE_TERMS_VALUES = { :collection_name => 'Arnold and Deanne Kaplan colle
                              :call_number => 'Arc.MS.56',
                              :rights => 'http://rightsstatements.org/vocab/UND/1.0/' }
 
-ROLLUP_TERMS = { :title => [:type, :person_nam, :person_n_1, :corporatio, :date, :geographic_subject] }.freeze
+ROLLUP_TERMS = { :title => [:type, :person_nam, :person_n_1, :corporatio, :geographic_subject, :date] }.freeze
 
 workbook = RubyXL::Workbook.new
 
