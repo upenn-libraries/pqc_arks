@@ -108,9 +108,10 @@ CROSSWALKING_OPTIONS = { :delimiter => '|' }
 
 BOILERPLATE_TERMS_VALUES = { :collection_name => 'Arnold and Deanne Kaplan collection of Early American Judaica, 1555-1977',
                              :call_number => 'Arc.MS.56',
+                             :language => 'English',
                              :rights => 'http://rightsstatements.org/vocab/UND/1.0/' }
 
-ROLLUP_TERMS = { :title => [:type, :person_nam, :person_n_1, :corporatio, :geographic_subject, :date] }.freeze
+ROLLUP_TERMS = { :title => [:type, :person_nam, :person_n_1, :corporate_name, :geographic_subject, :date] }.freeze
 
 workbook = RubyXL::Workbook.new
 
