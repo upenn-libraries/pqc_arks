@@ -4,6 +4,7 @@ require 'optparse'
 require 'smarter_csv'
 require 'rubyXL'
 require 'ezid-client'
+require 'active_support/inflector'
 
 def missing_args?
   return (ARGV[0].nil?)
@@ -23,6 +24,20 @@ end
 def mint_arkid
   identifier = Ezid::Identifier.mint
   return identifier, identifier.to_s.gsub(/[:\/]/, ':' => '+', '/' => '=')
+end
+
+def rollup(header, row)
+  term = ''
+  score = 0
+  ROLLUP_TERMS[header].each do |key|
+    if row[key].to_s.empty?
+      score += 1
+    else
+      value = key == :type ? "#{row[key]}".singularize : "#{row[key]}"
+      term << "#{value}; "
+    end
+  end
+  return score <= 4 ? term : ''
 end
 
 abort('Specify a path to a CSV file') if missing_args?
@@ -49,6 +64,7 @@ QUALIFIED_HEADERS = { :type => 'Type',
                       :format => 'Format',
                       :geographic_subject => 'Geographic Subject',
                       :identifier => 'Identifier',
+                      :collectify_identifiers => 'Collectify Identifier(s)',
                       :includes => 'Includes',
                       :language => 'Language',
                       :notes => 'Notes',
@@ -69,21 +85,21 @@ QUALIFIED_HEADERS = { :type => 'Type',
                       :status => 'Status'}.freeze
 
 CROSSWALKING_TERMS_SINGLE = { :corporatio => :corporate_name,
-                 :date => :date,
-                 :descriptio => :raw_description,
-                 :descript_1 => :description,
-                 :genre_subl => :type,
-                 :langcode => :language,
-                 :location => :geographic_subject,
-                 :container_ => :container_1_type,
-                 :containe_1 => :container_1_value,
-                 :containe_2 => :container_2_type,
-                 :containe_3 => :container_2_value,
-                 :tiff_locat => :filenames }.freeze
+                              :date => :date,
+                              :descriptio => :raw_description,
+                              :descript_1 => :description,
+                              :genre_subl => :type,
+                              :langcode => :language,
+                              :location => :geographic_subject,
+                              :container_ => :container_1_type,
+                              :containe_1 => :container_1_value,
+                              :containe_2 => :container_2_type,
+                              :containe_3 => :container_2_value,
+                              :tiff_locat => :filenames}.freeze
 
-CROSSWALKING_TERMS_MULTIPLE = { :identifier => [ :thing_uuid,
-                                                 :objects_refno,
-                                                 :ref_1,
+CROSSWALKING_TERMS_MULTIPLE = { :collectify_identifiers => [ :thing_uuid,
+                                                             :objects_refno ],
+                                :identifier => [ :ref_1,
                                                  :ref_2 ],
                                 :personal_name => [ :person_nam,
                                                     :person_n_1 ] }.freeze
@@ -92,7 +108,10 @@ CROSSWALKING_OPTIONS = { :delimiter => '|' }
 
 BOILERPLATE_TERMS_VALUES = { :collection_name => 'Arnold and Deanne Kaplan collection of Early American Judaica, 1555-1977',
                              :call_number => 'Arc.MS.56',
+                             :language => 'English',
                              :rights => 'http://rightsstatements.org/vocab/UND/1.0/' }
+
+ROLLUP_TERMS = { :title => [:type, :person_nam, :person_n_1, :corporate_name, :geographic_subject, :date] }.freeze
 
 workbook = RubyXL::Workbook.new
 
@@ -113,7 +132,6 @@ def workbook.prepop(dataset, opts = {})
   worksheet = worksheets[0]
 
   dataset.each_with_index do |row, y_index|
-
     QUALIFIED_HEADERS.each_with_index do  |(key, values), x|
       worksheet.add_cell(y_index+1, x, row[key]) unless row[key].nil?
     end
@@ -132,6 +150,10 @@ def workbook.prepop(dataset, opts = {})
     BOILERPLATE_TERMS_VALUES.each do |key, value|
       worksheet.add_cell(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == key }, value)
     end
+
+    # Rollup terms
+    title = rollup(:title, row)
+    add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :title }, title)
 
     if opts[:ark]
       identifier, directory = mint_arkid
