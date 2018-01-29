@@ -5,6 +5,7 @@ require 'smarter_csv'
 require 'rubyXL'
 require 'ezid-client'
 require 'active_support/inflector'
+require 'pry'
 
 def missing_args?
   return (ARGV[0].nil?)
@@ -48,18 +49,19 @@ Ezid::Client.configure do |conf|
   conf.password = 'apitest' unless ENV['EZID_PASSWORD']
 end
 
-QUALIFIED_HEADERS = { :type => 'Type',
+QUALIFIED_HEADERS = { :physical_type => 'Physical Type',
+                      :type => 'Type',
                       :unique_identifier => 'Unique Identifier',
                       :abstract => 'Abstract',
                       :call_number => 'Call Number',
                       :citation_note => 'Citation Note',
                       :collection_name => 'Collection Name',
+                      :container => 'Container',
                       :contributor => 'Contributor',
                       :corporate_name => 'Corporate Name',
                       :coverage => 'Coverage',
                       :creator => 'Creator',
                       :date => 'Date',
-                      :raw_description => 'Raw Description',
                       :description => 'Description',
                       :format => 'Format',
                       :geographic_subject => 'Geographic Subject',
@@ -76,39 +78,49 @@ QUALIFIED_HEADERS = { :type => 'Type',
                       :source => 'Source',
                       :subject => 'Subject',
                       :title => 'Title',
-                      :container_1_type => 'Container 1 Type',
-                      :container_1_value => 'Container 1 Value',
-                      :container_2_type => 'Container 2 Type',
-                      :container_2_value => 'Container 2 Value',
                       :directory_name => 'Directory Name',
                       :filenames => 'Filename(s)',
                       :status => 'Status'}.freeze
 
-CROSSWALKING_TERMS_SINGLE = { :corporatio => :corporate_name,
-                              :date => :date,
-                              :descriptio => :raw_description,
+CROSSWALKING_TERMS_SINGLE = { :corporate_name => :corporate_name,
+                              :corporatio => :corporate_name,
+                              :formatted_date => :date,
+                              :description_1 => :description,
                               :descript_1 => :description,
+                              :genre_sublevel => :type,
                               :genre_subl => :type,
                               :langcode => :language,
                               :location => :geographic_subject,
-                              :container_ => :container_1_type,
-                              :containe_1 => :container_1_value,
-                              :containe_2 => :container_2_type,
-                              :containe_3 => :container_2_value,
-                              :tiff_locat => :filenames}.freeze
+                              :geographic_name => :geographic_subject,
+                              :format => :format,
+                              :description => :description,
+                              :container => :container,
+                              :filenames => :filenames}.freeze
 
-CROSSWALKING_TERMS_MULTIPLE = { :collectify_identifiers => [ :thing_uuid,
-                                                             :objects_refno ],
-                                :identifier => [ :ref_1,
-                                                 :ref_2 ],
-                                :personal_name => [ :person_nam,
+CROSSWALKING_TERMS_MULTIPLE = { :collectify_identifiers => [ :arny_thing_uuid,
+                                                             :arny_objects_refno,
+                                                             :other_id ],
+                                :identifier => [ :ref,
+                                                 :cid,
+                                                 :ref_1,
+                                                 :ref_2,
+                                                 :arny_thing_uuid,
+                                                 :arny_objects_refno,
+                                                 :obj_id,
+                                                 :loan_id  ],
+                                :physical_type => [ :object_type,
+                                                    :material  ],
+                                :personal_name => [ :personal_name,
+                                                    :person_nam,
                                                     :person_n_1 ] }.freeze
+
 
 CROSSWALKING_OPTIONS = { :delimiter => '|' }
 
-BOILERPLATE_TERMS_VALUES = { :collection_name => 'Arnold and Deanne Kaplan collection of Early American Judaica, 1555-1977',
+BOILERPLATE_TERMS_VALUES = { :collection_name => 'Arnold and Deanne Kaplan Collection of Early American Judaica (University of Pennsylvania)',
                              :call_number => 'Arc.MS.56',
-                             :language => 'English',
+                             :type => 'Ephemera',
+                             #:language => 'English',
                              :rights => 'http://rightsstatements.org/vocab/UND/1.0/' }
 
 ROLLUP_TERMS = { :title => [:type, :person_nam, :person_n_1, :corporate_name, :geographic_subject, :date] }.freeze
@@ -132,6 +144,7 @@ def workbook.prepop(dataset, opts = {})
   worksheet = worksheets[0]
 
   dataset.each_with_index do |row, y_index|
+
     QUALIFIED_HEADERS.each_with_index do  |(key, values), x|
       worksheet.add_cell(y_index+1, x, row[key]) unless row[key].nil?
     end
@@ -152,8 +165,9 @@ def workbook.prepop(dataset, opts = {})
     end
 
     # Rollup terms
-    title = rollup(:title, row)
-    add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :title }, title)
+
+    #title = rollup(:title, row)
+    #add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :title }, title)
 
     if opts[:ark]
       identifier, directory = mint_arkid
