@@ -5,7 +5,6 @@ require 'smarter_csv'
 require 'rubyXL'
 require 'ezid-client'
 require 'active_support/inflector'
-require 'pry'
 
 def missing_args?
   return (ARGV[0].nil?)
@@ -24,7 +23,11 @@ end
 
 def mint_arkid
   identifier = Ezid::Identifier.mint
-  return identifier, identifier.to_s.gsub(/[:\/]/, ':' => '+', '/' => '=')
+  return identifier, directorify_ark(identifier)
+end
+
+def directorify_ark(ark)
+  return ark.to_s.gsub(/[:\/]/, ':' => '+', '/' => '=')
 end
 
 def rollup(header, row)
@@ -166,11 +169,15 @@ def workbook.prepop(dataset, opts = {})
 
     # Rollup terms
 
-    #title = rollup(:title, row)
-    #add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :title }, title)
+    title = rollup(:title, row)
+    add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :title }, title)
 
     if opts[:ark]
-      identifier, directory = mint_arkid
+      if row[:unique_identifier].nil?
+        identifier, directory = mint_arkid
+      else
+        identifier, directory = row[:unique_identifier], directorify_ark(row[:unique_identifier])
+      end
       add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :unique_identifier }, identifier)
       add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :directory_name }, directory)
     end
