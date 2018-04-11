@@ -6,6 +6,8 @@ require 'rubyXL'
 require 'ezid-client'
 require 'active_support/inflector'
 
+require 'pry'
+
 def missing_args?
   return (ARGV[0].nil?)
 end
@@ -44,7 +46,7 @@ def rollup(header, row)
   return score <= 4 ? term : ''
 end
 
-abort('Specify a path to a CSV file') if missing_args?
+abort('Specify a path to a CSV file or a number of blank rows with arks to mint') if missing_args?
 
 Ezid::Client.configure do |conf|
   conf.default_shoulder = 'ark:/99999/fk4' unless ENV['EZID_DEFAULT_SHOULDER']
@@ -52,8 +54,7 @@ Ezid::Client.configure do |conf|
   conf.password = 'apitest' unless ENV['EZID_PASSWORD']
 end
 
-QUALIFIED_HEADERS = { :physical_type => 'Physical Type',
-                      :type => 'Type',
+QUALIFIED_HEADERS = { :type => 'Type',
                       :unique_identifier => 'Unique Identifier',
                       :abstract => 'Abstract',
                       :call_number => 'Call Number',
@@ -122,7 +123,7 @@ CROSSWALKING_OPTIONS = { :delimiter => '|' }
 
 BOILERPLATE_TERMS_VALUES = { :collection_name => 'Arnold and Deanne Kaplan Collection of Early American Judaica (University of Pennsylvania)',
                              :call_number => 'Arc.MS.56',
-                             :type => 'Ephemera',
+                             #:type => 'Ephemera',
                              #:language => 'English',
                              :rights => 'http://rightsstatements.org/vocab/UND/1.0/' }
 
@@ -185,6 +186,18 @@ def workbook.prepop(dataset, opts = {})
   end
 end
 
+def workbook.blank_rows(num_rows)
+  worksheet = worksheets[0]
+  (0..(num_rows-1)).each do |y_index|
+    identifier, directory = mint_arkid
+    add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :unique_identifier }, identifier)
+    add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :directory_name }, directory)
+    BOILERPLATE_TERMS_VALUES.each do |key, value|
+      worksheet.add_cell(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == key }, value)
+    end
+  end
+end
+
 flags = {}
 OptionParser.new do |opts|
   opts.banner = "Usage: prepop_rows.rb [options] FILE"
@@ -193,15 +206,21 @@ OptionParser.new do |opts|
     flags[:ark] = a
   end
 end.parse!
+
 spreadsheet_name = 'default.xlsx'
-
-csv = ARGV[0]
-options = { :encoding => 'ISO8859-1:utf-8', :key_mapping => CROSSWALKING_TERMS_SINGLE }
-csv_parsed = SmarterCSV.process(csv, options)
-
-puts 'Writing spreadsheet...'
 workbook.set_up_spreadsheet
-workbook.prepop(csv_parsed, flags)
+
+num_rows = Integer(ARGV[0]) rescue false
+
+if num_rows && flags[:ark]
+  workbook.blank_rows(num_rows)
+else
+  csv = ARGV[0]
+  options = { :encoding => 'ISO8859-1:utf-8', :key_mapping => CROSSWALKING_TERMS_SINGLE }
+  csv_parsed = SmarterCSV.process(csv, options)
+  puts 'Writing spreadsheet...'
+  workbook.prepop(csv_parsed, flags)
+end
+
 workbook.write(spreadsheet_name)
 puts "Spreadsheet written to #{spreadsheet_name}."
-
