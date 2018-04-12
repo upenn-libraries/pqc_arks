@@ -6,8 +6,6 @@ require 'rubyXL'
 require 'ezid-client'
 require 'active_support/inflector'
 
-require 'pry'
-
 def missing_args?
   return (ARGV[0].nil?)
 end
@@ -39,7 +37,13 @@ def rollup(header, row)
     if row[key].to_s.empty?
       score += 1
     else
-      value = key == :type ? "#{row[key]}".singularize : "#{row[key]}"
+      if key == :type
+        value = "#{row[key]}".gsub(/\|$/,'').singularize
+      elsif key == :geographic_subject
+        value = row[key].split('|').max_by(&:length)
+      else
+        value = "#{row[key]}"
+      end
       term << "#{value}; "
     end
   end
@@ -84,6 +88,10 @@ QUALIFIED_HEADERS = { :type => 'Type',
                       :title => 'Title',
                       :directory_name => 'Directory Name',
                       :filenames => 'Filename(s)',
+                      :first_filename => 'First filename',
+                      :full_address => 'full address',
+                      :notes2 => 'Notes2',
+                      :done => 'Done',
                       :status => 'Status'}.freeze
 
 CROSSWALKING_TERMS_SINGLE = { :corporate_name => :corporate_name,
@@ -93,12 +101,14 @@ CROSSWALKING_TERMS_SINGLE = { :corporate_name => :corporate_name,
                               :descript_1 => :description,
                               :genre_sublevel => :type,
                               :genre_subl => :type,
+                              :type => :type,
                               :langcode => :language,
                               :location => :geographic_subject,
                               :geographic_name => :geographic_subject,
                               :format => :format,
                               :description => :description,
                               :container => :container,
+                              :first_filename => :first_filename,
                               :filenames => :filenames}.freeze
 
 CROSSWALKING_TERMS_MULTIPLE = { :collectify_identifiers => [ :arny_thing_uuid,
@@ -111,7 +121,9 @@ CROSSWALKING_TERMS_MULTIPLE = { :collectify_identifiers => [ :arny_thing_uuid,
                                                  :arny_thing_uuid,
                                                  :arny_objects_refno,
                                                  :obj_id,
-                                                 :loan_id  ],
+                                                 :loan_id,
+                                                 :identifier,
+                                                 :"collectify_identifier(s)" ],
                                 :physical_type => [ :object_type,
                                                     :material  ],
                                 :personal_name => [ :personal_name,
@@ -148,7 +160,6 @@ def workbook.prepop(dataset, opts = {})
   worksheet = worksheets[0]
 
   dataset.each_with_index do |row, y_index|
-
     QUALIFIED_HEADERS.each_with_index do  |(key, values), x|
       worksheet.add_cell(y_index+1, x, row[key]) unless row[key].nil?
     end
@@ -156,7 +167,7 @@ def workbook.prepop(dataset, opts = {})
     CROSSWALKING_TERMS_MULTIPLE.each do |key, values|
       multi_values[key] = ""
       values.each do |value|
-        multi_values[key].concat("#{row[value]}#{CROSSWALKING_OPTIONS[:delimiter]}") unless row[value].nil?
+        multi_values[key].concat("#{row[value].gsub(/\|$/,'')}#{CROSSWALKING_OPTIONS[:delimiter]}") unless row[value].nil?
       end
     end
 
