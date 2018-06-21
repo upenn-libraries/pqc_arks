@@ -109,7 +109,7 @@ CROSSWALKING_TERMS_SINGLE = { :corporate_name => :corporate_name,
                               :description => :description,
                               :container => :container,
                               :first_filename => :first_filename,
-                              :filenames => :filenames}.freeze
+                              :'filename(s)' => :filenames}.freeze
 
 CROSSWALKING_TERMS_MULTIPLE = { :collectify_identifiers => [ :arny_thing_uuid,
                                                              :arny_objects_refno,
