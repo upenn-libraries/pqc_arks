@@ -44,13 +44,21 @@ def rollup(header, row)
       else
         value = "#{row[key]}"
       end
-      term << "#{value}; "
+      term << "#{value.strip}; "
     end
   end
   return score <= 4 ? term : ''
 end
 
-abort('Specify a path to a CSV file or a number of blank rows with arks to mint') if missing_args?
+def validation_check(row)
+  output = []
+  output << "Ark ID and directory names do not match: #{row[:unique_identifier]} and #{row[:directory]}" unless directorify_ark(row[:unique_identifier]) == row[:directory_name]
+  output << "Missing required value title: #{row[:unique_identifier]}" if row[:title].nil? || row[:title].empty?
+  output << "Missing required value filename(s): #{row[:unique_identifier]}" if row[:'filename(s)'].nil? || row[:'filename(s)'].empty?
+  return output
+end
+
+abort('Specify a path to a CSV or XLSX file or a number of blank rows with arks to mint') if missing_args?
 
 Ezid::Client.configure do |conf|
   conf.default_shoulder = 'ark:/99999/fk4' unless ENV['EZID_DEFAULT_SHOULDER']
@@ -74,7 +82,8 @@ QUALIFIED_HEADERS = { :type => 'Type',
                       :format => 'Format',
                       :geographic_subject => 'Geographic Subject',
                       :identifier => 'Identifier',
-                      :collectify_identifiers => 'Collectify Identifier(s)',
+                      :'collectify_identifier(s)' => 'Collectify Identifier(s)',
+                      :object_refno => 'Object Refno',
                       :includes => 'Includes',
                       :language => 'Language',
                       :notes => 'Notes',
@@ -87,12 +96,13 @@ QUALIFIED_HEADERS = { :type => 'Type',
                       :subject => 'Subject',
                       :title => 'Title',
                       :directory_name => 'Directory Name',
-                      :filenames => 'Filename(s)',
+                      :'filename(s)' => 'Filename(s)',
                       :first_filename => 'First filename',
-                      :full_address => 'full address',
                       :notes2 => 'Notes2',
                       :done => 'Done',
-                      :status => 'Status'}.freeze
+                      :status => 'Status',
+                      :duplicates => 'Duplicates',
+                      :master => 'Master'}.freeze
 
 CROSSWALKING_TERMS_SINGLE = { :corporate_name => :corporate_name,
                               :corporatio => :corporate_name,
@@ -123,7 +133,7 @@ CROSSWALKING_TERMS_MULTIPLE = { :collectify_identifiers => [ :arny_thing_uuid,
                                                  :obj_id,
                                                  :loan_id,
                                                  :identifier,
-                                                 :"collectify_identifier(s)" ],
+                                                 :'collectify_identifier(s)' ],
                                 :physical_type => [ :object_type,
                                                     :material  ],
                                 :personal_name => [ :personal_name,
@@ -157,6 +167,7 @@ end
 def workbook.prepop(dataset, opts = {})
 
   multi_values = {}
+  messages = []
   worksheet = worksheets[0]
 
   dataset.each_with_index do |row, y_index|
@@ -166,8 +177,9 @@ def workbook.prepop(dataset, opts = {})
 
     CROSSWALKING_TERMS_MULTIPLE.each do |key, values|
       multi_values[key] = ""
+
       values.each do |value|
-        multi_values[key].concat("#{row[value].gsub(/\|$/,'')}#{CROSSWALKING_OPTIONS[:delimiter]}") unless row[value].nil?
+        multi_values[key].concat("#{row[value].gsub(/\|$/,'')}#{CROSSWALKING_OPTIONS[:delimiter]}") unless (row[value].nil? || row[value].empty?)
       end
     end
 
@@ -183,18 +195,24 @@ def workbook.prepop(dataset, opts = {})
 
     title = rollup(:title, row)
     add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :title }, title)
+    row[:title] = title
 
     if opts[:ark]
-      if row[:unique_identifier].nil?
+      if row[:unique_identifier].nil? || row[:unique_identifier].empty?
         identifier, directory = mint_arkid
+        row[:unique_identifier] = identifier.to_s
+        row[:directory_name] = directory
       else
-        identifier, directory = row[:unique_identifier], directorify_ark(row[:unique_identifier])
+        row[:directory_name] = directorify_ark(row[:unique_identifier])
+        identifier, directory = row[:unique_identifier], row[:directory]
       end
       add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :unique_identifier }, identifier)
       add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :directory_name }, directory)
     end
-
+    messages << validation_check(row)
   end
+  messages.map{|x| puts x}
+  puts "All checks made.  Any errors detected are displayed above."
 end
 
 def workbook.blank_rows(num_rows)
@@ -209,16 +227,45 @@ def workbook.blank_rows(num_rows)
   end
 end
 
+def extract_rows(filename)
+  contents_array = []
+  if File.extname(filename).downcase == '.csv'
+    csv = ARGV[0]
+    options = { :encoding => 'ISO8859-1:utf-8', :key_mapping => CROSSWALKING_TERMS_SINGLE }
+    contents_array = SmarterCSV.process(csv, options)
+  elsif File.extname(filename).downcase == '.xlsx'
+    xlsx = RubyXL::Parser.parse(filename)
+    worksheet = xlsx[0]
+    contents_array = []
+    headers = worksheet.sheet_data.rows.first.cells.map do |cell|
+      cell.value.downcase.gsub(' ','_').to_sym
+    end
+    worksheet.sheet_data.rows.each do |row|
+      row_hash = {}
+      row.cells.each_with_index do |cell, position|
+        value = (cell.nil? || cell.value.nil?) ? '' : cell.value.to_s
+        row_hash[headers[position]] = value
+      end
+      contents_array << row_hash
+    end
+    contents_array.shift
+  else
+    abort("Unsupported file extension: #{File.extname(filename).downcase}")
+  end
+  return contents_array
+end
+
+
 flags = {}
 OptionParser.new do |opts|
-  opts.banner = "Usage: prepop_rows.rb [options] FILE"
+  opts.banner = "Usage: prepop_rows.rb [options] FILE(required) OUTPUTFILE(optional)"
 
   opts.on("-a", "--ark", "Mint arks, one per row in output spreadsheet") do |a|
     flags[:ark] = a
   end
 end.parse!
 
-spreadsheet_name = 'default.xlsx'
+spreadsheet_name = ARGV[1].nil? ? 'default.xlsx' : "#{File.basename(ARGV[1], '.*')}.xlsx"
 workbook.set_up_spreadsheet
 
 num_rows = Integer(ARGV[0]) rescue false
@@ -226,11 +273,8 @@ num_rows = Integer(ARGV[0]) rescue false
 if num_rows && flags[:ark]
   workbook.blank_rows(num_rows)
 else
-  csv = ARGV[0]
-  options = { :encoding => 'ISO8859-1:utf-8', :key_mapping => CROSSWALKING_TERMS_SINGLE }
-  csv_parsed = SmarterCSV.process(csv, options)
-  puts 'Writing spreadsheet...'
-  workbook.prepop(csv_parsed, flags)
+  dataset = extract_rows(ARGV[0])
+  workbook.prepop(dataset, flags)
 end
 
 workbook.write(spreadsheet_name)
