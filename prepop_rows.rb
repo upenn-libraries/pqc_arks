@@ -6,6 +6,8 @@ require 'rubyXL'
 require 'ezid-client'
 require 'active_support/inflector'
 
+require 'pry'
+
 def missing_args?
   return (ARGV[0].nil?)
 end
@@ -27,7 +29,7 @@ def mint_arkid
 end
 
 def directorify_ark(ark)
-  return ark.to_s.gsub(/[:\/]/, ':' => '+', '/' => '=')
+  return ark.to_s.gsub(/[:\/]/, ':' => '+', '/' => '=') unless ark.nil?
 end
 
 def rollup(header, row)
@@ -169,7 +171,6 @@ def workbook.prepop(dataset, opts = {})
   multi_values = {}
   messages = []
   worksheet = worksheets[0]
-
   dataset.each_with_index do |row, y_index|
     QUALIFIED_HEADERS.each_with_index do  |(key, values), x|
       worksheet.add_cell(y_index+1, x, row[key]) unless row[key].nil?
@@ -228,18 +229,18 @@ def workbook.blank_rows(num_rows)
 end
 
 def extract_rows(filename)
-  contents_array = []
   if File.extname(filename).downcase == '.csv'
     csv = ARGV[0]
     options = { :encoding => 'ISO8859-1:utf-8', :key_mapping => CROSSWALKING_TERMS_SINGLE }
     contents_array = SmarterCSV.process(csv, options)
   elsif File.extname(filename).downcase == '.xlsx'
+    contents_array = []
     xlsx = RubyXL::Parser.parse(filename)
     worksheet = xlsx[0]
-    contents_array = []
     headers = worksheet.sheet_data.rows.first.cells.map do |cell|
       cell.value.downcase.gsub(' ','_').to_sym
     end
+    abort('Duplicate column names in use, aborting') if headers.length != headers.uniq.length
     worksheet.sheet_data.rows.each do |row|
       row_hash = {}
       row.cells.each_with_index do |cell, position|
