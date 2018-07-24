@@ -54,7 +54,7 @@ end
 
 def validation_check(row)
   output = []
-  output << "Ark ID and directory names do not match: #{row[:unique_identifier]} and #{row[:directory]}" unless directorify_ark(row[:unique_identifier]) == row[:directory_name]
+  output << "Ark ID and directory names do not match: #{row[:unique_identifier]} and #{row[:directory_name]}" unless directorify_ark(row[:unique_identifier]) == row[:directory_name]
   output << "Missing required value title: #{row[:unique_identifier]}" if row[:title].nil? || row[:title].empty?
   output << "Missing required value filename(s): #{row[:unique_identifier]}" if row[:'filename(s)'].nil? || row[:'filename(s)'].empty?
   return output
