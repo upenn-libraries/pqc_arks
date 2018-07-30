@@ -32,7 +32,7 @@ def directorify_ark(ark)
   return ark.to_s.gsub(/[:\/]/, ':' => '+', '/' => '=') unless ark.nil?
 end
 
-def rollup(header, row, multi_headers=[])
+def rollup(header, row)
 
   term = ''
   score = 0
@@ -44,8 +44,8 @@ def rollup(header, row, multi_headers=[])
         value = "#{row[key]}".gsub(/\|$/,'').singularize
       elsif key == :geographic_subject
         value = row[key].split('|').max_by(&:length)
-      elsif multi_headers.include? key
-        value = row[key] ? row[key].to_s.split('|').join('; ') : ''
+      elsif row[key] && row[key].to_s =~ /\|/
+        value = row[key].to_s.split('|').join('; ') 
       else
         value = "#{row[key]}"
       end
@@ -145,9 +145,6 @@ CROSSWALKING_TERMS_MULTIPLE = { :collectify_identifiers => [ :arny_thing_uuid,
                                                     :person_nam,
                                                     :person_n_1 ] }.freeze
 
-# headers that may can contain more than on value
-MULTIPLE_HEADERS = CROSSWALKING_TERMS_MULTIPLE.values.flatten.freeze
-
 CROSSWALKING_OPTIONS = { :delimiter => '|' }
 
 BOILERPLATE_TERMS_VALUES = { :collection_name => 'Arnold and Deanne Kaplan Collection of Early American Judaica (University of Pennsylvania)',
@@ -199,7 +196,7 @@ def workbook.prepop(dataset, opts = {})
 
     # Rollup terms
 
-    title = rollup(:title, row, MULTIPLE_HEADERS)
+    title = rollup(:title, row)
     add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :title }, title)
     row[:title] = title
 
