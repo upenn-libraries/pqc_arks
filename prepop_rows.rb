@@ -49,7 +49,7 @@ def rollup(header, row)
       term << "#{value.strip}; "
     end
   end
-  return score <= 4 ? term : ''
+  return score <= 5 ? term : ''
 end
 
 def validation_check(row)
