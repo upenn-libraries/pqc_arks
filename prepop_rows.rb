@@ -13,12 +13,11 @@ ActiveSupport::Inflector.inflections(:en) do |inflect|
   inflect.singular /^(ox)en/i, '\1'
 
   inflect.uncountable 'art'
-  inflect.irregular 'cartes-de-visite', 'carte-de-visite'
+  inflect.irregular 'carte-de-visite', 'cartes-de-visite'
   inflect.uncountable 'miscellaneous'
   inflect.uncountable 'monetary'
-  inflect.irregular 'ports of entry', 'port of entry'
+  inflect.irregular 'port of entry', 'ports of entry'
   inflect.uncountable 'sheet music'
-
 end
 
 def missing_args?
@@ -58,7 +57,7 @@ def rollup(header, row)
       elsif key == :geographic_subject
         value = row[key].split('|').max_by(&:length)
       elsif row[key] && row[key].to_s =~ /\|/
-        value = row[key].to_s.split('|').join('; ') 
+        value = row[key].to_s.split('|').join('; ')
       else
         value = "#{row[key]}"
       end
