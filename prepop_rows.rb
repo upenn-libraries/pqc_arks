@@ -8,6 +8,19 @@ require 'active_support/inflector'
 
 require 'pry'
 
+ActiveSupport::Inflector.inflections(:en) do |inflect|
+  inflect.plural /^(ox)$/i, '\1\2en'
+  inflect.singular /^(ox)en/i, '\1'
+
+  inflect.uncountable 'art'
+  inflect.irregular 'cartes-de-visite', 'carte-de-visite'
+  inflect.uncountable 'miscellaneous'
+  inflect.uncountable 'monetary'
+  inflect.irregular 'ports of entry', 'port of entry'
+  inflect.uncountable 'sheet music'
+
+end
+
 def missing_args?
   return (ARGV[0].nil?)
 end
