@@ -8,6 +8,18 @@ require 'active_support/inflector'
 
 require 'pry'
 
+ActiveSupport::Inflector.inflections(:en) do |inflect|
+  inflect.plural /^(ox)$/i, '\1\2en'
+  inflect.singular /^(ox)en/i, '\1'
+
+  inflect.uncountable 'art'
+  inflect.irregular 'carte-de-visite', 'cartes-de-visite'
+  inflect.uncountable 'miscellaneous'
+  inflect.uncountable 'monetary'
+  inflect.irregular 'port of entry', 'ports of entry'
+  inflect.uncountable 'sheet music'
+end
+
 def missing_args?
   return (ARGV[0].nil?)
 end
@@ -33,6 +45,7 @@ def directorify_ark(ark)
 end
 
 def rollup(header, row)
+
   term = ''
   score = 0
   ROLLUP_TERMS[header].each do |key|
@@ -43,6 +56,8 @@ def rollup(header, row)
         value = "#{row[key]}".gsub(/\|$/,'').singularize
       elsif key == :geographic_subject
         value = row[key].split('|').max_by(&:length)
+      elsif row[key] && row[key].to_s =~ /\|/
+        value = row[key].to_s.split('|').join('; ')
       else
         value = "#{row[key]}"
       end
@@ -141,7 +156,6 @@ CROSSWALKING_TERMS_MULTIPLE = { :collectify_identifiers => [ :arny_thing_uuid,
                                 :personal_name => [ :personal_name,
                                                     :person_nam,
                                                     :person_n_1 ] }.freeze
-
 
 CROSSWALKING_OPTIONS = { :delimiter => '|' }
 
