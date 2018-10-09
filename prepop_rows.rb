@@ -57,7 +57,7 @@ def rollup(header, row)
       elsif key == :geographic_subject
         value = row[key].split('|').max_by(&:length)
       elsif row[key] && row[key].to_s =~ /\|/
-        value = row[key].to_s.split('|').join('; ')
+        value = row[key].to_s.split('|').map(&:strip).join('; ')
       else
         value = "#{row[key]}"
       end
