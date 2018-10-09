@@ -280,7 +280,7 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-spreadsheet_name = ARGV[1].nil? ? 'default.xlsx' : "#{File.basename(ARGV[1], '.*')}.xlsx"
+spreadsheet_name = ARGV[1].nil? ? "#{File.basename(ARGV[0], '.*')}_POPULATED.xlsx" : "#{File.basename(ARGV[1], '.*')}.xlsx"
 workbook.set_up_spreadsheet
 
 num_rows = Integer(ARGV[0]) rescue false
