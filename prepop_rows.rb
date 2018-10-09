@@ -234,7 +234,7 @@ def workbook.blank_rows(num_rows)
   worksheet = worksheets[0]
   (0..(num_rows-1)).each do |y_index|
     identifier, directory = mint_arkid
-    add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :unique_identifier }, identifier)
+    add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :unique_identifier }, identifier.to_s)
     add_custom_field(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == :directory_name }, directory)
     BOILERPLATE_TERMS_VALUES.each do |key, value|
       worksheet.add_cell(y_index+1, QUALIFIED_HEADERS.find_index { |k,_| k == key }, value)
@@ -284,7 +284,6 @@ spreadsheet_name = ARGV[1].nil? ? 'default.xlsx' : "#{File.basename(ARGV[1], '.*
 workbook.set_up_spreadsheet
 
 num_rows = Integer(ARGV[0]) rescue false
-
 if num_rows && flags[:ark]
   workbook.blank_rows(num_rows)
 else
