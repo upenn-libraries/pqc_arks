@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 
 require 'optparse'
 require 'smarter_csv'
@@ -57,7 +57,7 @@ def rollup(header, row)
       elsif key == :geographic_subject
         value = row[key].split('|').max_by(&:length)
       elsif row[key] && row[key].to_s =~ /\|/
-        value = row[key].to_s.split('|').join('; ')
+        value = row[key].to_s.split('|').map(&:strip).join('; ')
       else
         value = "#{row[key]}"
       end
@@ -280,7 +280,7 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-spreadsheet_name = ARGV[1].nil? ? 'default.xlsx' : "#{File.basename(ARGV[1], '.*')}.xlsx"
+spreadsheet_name = ARGV[1].nil? ? "#{File.basename(ARGV[0], '.*')}_POPULATED.xlsx" : "#{File.basename(ARGV[1], '.*')}.xlsx"
 workbook.set_up_spreadsheet
 
 num_rows = Integer(ARGV[0]) rescue false
