@@ -1,48 +1,44 @@
-## README for `prepop_rows`
+# README for `pqc_arks`
 
-This is a script to prepopulate a rows-based metadata spreadsheet for PQC from a source CSV or XLSX file.
+This is a script to prepopulate EZID ark IDs and some boilerplate metadata in a spreadsheet for PQC-compliant objects, from a source CSV or XLSX file.
 
-### Requirements
-* Ruby 2.2.5 or above
-* rubyXL gem
-* SmarterCSV gem
-* EZID client credentials (for minting true arks)
+## Requirements
+* Ruby 2.5.1 or above
+* EZID client credentials (for minting ark IDs for production)
 
-### Usage
+## Setup
 
-To generate a spreadsheet without minting ARK identifiers, where `$SOURCE_FILE` is a CSV or XLSX file to be used as the source:
+1. Install Ruby dependencies:
+
+  ```bash 
+  $ bundle install
+  ```
+
+2. *** ***If you are minting ark IDs for production*** ***, source environment variables for the EZID account credentials.
+
+  ```bash
+  $ export EZID_DEFAULT_SHOULDER='$SHOULDER';
+  $ export EZID_USER='$USERNAME';
+  $ export EZID_PASSWORD='$PASSWORD';
+  ```
+
+  Where `$SHOULDER`, `$USERNAME`, and `$PASSWORD` are the EZID account values for production.
+
+## Usage
+
+To generate a spreadsheet and mint one ARK identifier per row, which will be included in the spreadsheet:
 ```
-ruby prepop_rows.rb $SOURCE_FILE
-```
-
-To generate a spreadsheet and mint one ARK identifier per row (this will be included in the spreadsheet):
-```
-ruby prepop_rows.rb $SOURCE_FILE --ark
-```
-
-or 
-
-```
-ruby prepop_rows.rb $SOURCE_FILE -a
-```
-
-For help on the command line:
-```
-ruby prepop_rows.rb -h
-```
-
-New values will be saved to a spreadsheet either called `default.xlsx` in the same directory from which you ran the script, or at a path and filename optionally specified as a second argument, like so:
-
-```
-ruby prepop_rows.rb $SOURCE_FILE output_file.xlsx
+bundle exec ruby pqc_arks.rb $NUMBER_OF_ARKS
 ```
 
-### Validation checks
+Where `$NUMBER_OF_ARKS` is an integer value specifying the number of ark IDs you want to create at this time, in one sheet.
 
-This script performs the following validation checks as each row of data is created:
+New values will be saved to a spreadsheet either called `$<NUMBER_OF_ARKS>_POPULATED.xlsx` in the same directory from which you ran the script, or at a path and filename optionally specified as a second argument.
 
-* Ark identifier and directory name matches
-* Title value is present
-* Filename(s) value is present
+Example:
 
-Any errors detected are displayed in the terminal at the end of the run.
+```
+bundle exec ruby pqc_arks.rb $NUMBER_OF_ARKS output_file.xlsx
+```
+
+The spreadsheet containing the ark IDs in the written in the above example would be `output_file.xlsx`, located in the same directory from which you ran the script.
