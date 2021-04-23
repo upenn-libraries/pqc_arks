@@ -1,4 +1,4 @@
-# README for `bulk_import_csv_generator`
+# Bulk Import CSV Generator`
 
 This is a script to pre-populate EZID ark IDs in a bulk import spreadsheet.
 
