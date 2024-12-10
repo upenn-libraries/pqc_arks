@@ -3,7 +3,7 @@
 This is a script to pre-populate EZID ark IDs in a bulk import spreadsheet.
 
 ## Requirements
-* Ruby 2.7.1 or above
+* Ruby 3.2.5 or above
 * EZID client credentials (for minting ark IDs for production)
 
 ## Setup
@@ -39,7 +39,8 @@ Usage: bulk_import_csv.rb --lines=LINES --output=FILEPATH --dryrun
 ruby bulk_import_csv.rb --lines 100 --output /home/important/place/output_file.csv
 ```
 
-A bulk import spreadsheet with 100 minted arks will be creates and written to `/home/important/place/output_file.csv`. The arks will be minted with production credentials.
+A bulk import spreadsheet with 100 minted arks will be created and written to `/home/important/place/output_file.
+csv`. The arks will be minted with production credentials.
 
 #### To test the script:
 ```
