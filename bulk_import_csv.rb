@@ -31,20 +31,7 @@ end.parse!
 ##### Helper methods
 
 def headers
-  metadata_fields =  [
-    'item_type', 'abstract', 'call_number', 'collection', 'contributor',
-    'corporate_name', 'coverage', 'creator', 'date', 'description', 'format',
-    'geographic_subject', 'identifier', 'includes', 'language', 'notes',
-    'personal_name', 'provenance', 'publisher', 'relation', 'rights', 'source',
-    'subject', 'title'
-  ]
-
-  structural_fields = ['filenames']
-
-  list = ['unique_identifier', 'action', 'directive_name']
-  list.concat metadata_fields.map { |f| "metadata.#{f}[1]" }
-  list.concat structural_fields.map { |f| "structural.#{f}" }
-  list
+  ['unique_identifier', 'action']
 end
 
 # Returns a minted ark.
